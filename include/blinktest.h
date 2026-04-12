@@ -2,6 +2,6 @@
 #define BLINKTEST_H
 #include <Arduino.h>
 
-#define LED_GPIO GPIO_NUM_48
+#define LED_GPIO 2
 void blinkTest(void *pvParameters);
 #endif // BLINKTEST_H
