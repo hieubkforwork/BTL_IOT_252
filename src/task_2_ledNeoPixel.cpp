@@ -9,6 +9,27 @@
  * 
  * @param pvParameters 
  */
-void taskHandleNeoPixel(void *pvParameters) {
-  
-}
+
+TaskHandle_t ledTaskHandle = NULL;
+
+ void taskHandleNeoPixel(void *pvParameters)
+{
+    uint32_t notifyValue;
+
+    while (1)
+    {
+        // Chờ notification từ WebTask
+        if (xTaskNotifyWait(
+                0x00,                 // clear bit on entry
+                ULONG_MAX,           // clear all bits on exit
+                &notifyValue,        // nhận giá trị notify
+                portMAX_DELAY) == pdTRUE)
+        {
+            // Check đúng bit mình cần
+            if (notifyValue & WIFI_CONNECTED_NOTIFY_BIT)
+            {
+                Serial.println("Test Received WiFi Connected -> LED ON ");
+            }
+        }
+    }
+  }
