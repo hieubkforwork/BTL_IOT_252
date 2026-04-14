@@ -14,6 +14,25 @@ String lastMsg = "-";
 bool mqttConfigured = false;
 unsigned long lastMQTTRetry = 0;
 
+static bool wifiWasConnected = false;
+
+void handleWiFiNotify()
+{
+    bool wifiNowConnected = (WiFi.status() == WL_CONNECTED);
+
+    if (wifiNowConnected && !wifiWasConnected)
+    {
+        Serial.println("[WebTask] WiFi connected -> notify LedTask");
+
+        if (ledTaskHandle != NULL)
+        {
+            xTaskNotify(ledTaskHandle, WIFI_CONNECTED_NOTIFY_BIT, eSetBits);
+        }
+    }
+
+    wifiWasConnected = wifiNowConnected;
+}
+
 void mqttCallback(char *topic, byte *payload, unsigned int length)
 {
   String msg;
@@ -246,6 +265,7 @@ void webServerTask(void *pvParameters)
   // ===== Task loop =====
   while (true)
   {
+    handleWiFiNotify();
     handleMQTT();
     vTaskDelay(pdMS_TO_TICKS(100));
   }

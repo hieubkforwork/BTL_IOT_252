@@ -111,7 +111,6 @@ function pollWiFiStatus() {
 
                 // reset UI
                 updateWiFiUI();
-
                 return;
             }
             if(btn) btn.innerHTML = `<span>Connecting... (${retry}/${maxRetry})</span>`;
