@@ -3,3 +3,70 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+
+# Build artifacts
+build/
+dist/
+*.o
+*.a
+*.lib
+*.bin
+*.elf
+*.hex
+
+# PlatformIO
+.platformio/
+.pioenvs/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv-1/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Generated/Temporary files
+*.tmp
+*.temp
+*.bak
+*.pb
+*.pbtext
+*.md5
+*.meta
+
+# Environment files
+.env
+.env.local
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Optional Python files (model files that are regenerated)
+TEST_5_TinyML.h5
+# scaler.save kept for reference in reports
