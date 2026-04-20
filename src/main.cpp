@@ -3,6 +3,7 @@
 #include "task_2_ledNeoPixel.h"
 #include "task_5_TinyML.h"
 #include "task_4_AP_Webserver.h"
+#include "task_6_CoreIOT.h"
 #include <LittleFS.h>
 
 void setup() {
@@ -14,6 +15,7 @@ void setup() {
   xTaskCreate(blinkTest, "LED Control", 2048, NULL, 1, NULL);
   xTaskCreate(tiny_ml_task, "TinyML Task", 4096, NULL, 2, NULL);
   xTaskCreatePinnedToCore(webServerTask, "WebServerTask", 8192, NULL, 1, NULL, 1);
+  xTaskCreate(taskCoreMQTT, "MQTT CoreIOT", 4096, NULL, 2, NULL);
 }
  
 void loop() {
