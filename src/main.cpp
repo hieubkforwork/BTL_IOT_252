@@ -12,7 +12,7 @@ void setup() {
 
   xTaskCreate(taskReadSensor, "Sensor Reader", 3072, NULL, 3, NULL);     
   xTaskCreate(taskHandleNeoPixel, "NeoPixel Control", 4096, NULL, 2, NULL);
-  xTaskCreate(blinkTest, "LED Control", 2048, NULL, 1, NULL);
+  xTaskCreate(blinkTest, "LED Control", 2048, NULL, 1, &ledTaskHandle);
   xTaskCreate(tiny_ml_task, "TinyML Task", 4096, NULL, 3, NULL);
   xTaskCreatePinnedToCore(webServerTask, "WebServerTask", 8192, NULL, 1, NULL, 1);
   xTaskCreate(taskCoreMQTT, "MQTT CoreIOT", 4096, NULL, 2, NULL);

@@ -10,14 +10,12 @@
 #include <PubSubClient.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "blinktest.h"  // For ledTaskHandle definition
 
 #define LED_PIN GPIO_NUM_5
 #define WIFI_CONNECTED_NOTIFY_BIT (1 << 0)
 
 extern AsyncWebServer server;
-
-// Handle của task LED
-extern TaskHandle_t ledTaskHandle;
 
 void mountFlash(void *pvParameters);
 void settingsWifi(void *pvParameters);

@@ -1,5 +1,8 @@
 #include "blinktest.h"
 
+// ========== Global Task Handle Definition ==========
+TaskHandle_t ledTaskHandle = NULL;  // Initialized at task creation in main.cpp
+
 void blinkTest(void *pvParameters){
   pinMode(LED_GPIO, OUTPUT);
   
