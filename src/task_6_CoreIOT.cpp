@@ -4,10 +4,24 @@ bool initWiFi() {
     Serial.println("\n========== WiFi Initialization ==========");
     Serial.printf("Target SSID: %s\n", WIFI_SSID);
     
-    WiFi.mode(WIFI_STA);
+    // ========== Smart WiFi Mode Handling ==========
+    // Check if Task 4 already set up dual mode (AP+STA)
+    wifi_mode_t current_mode = WiFi.getMode();
+    
+    if (current_mode == WIFI_AP_STA) {
+        // Task 4 (WebServer) already setup dual mode - keep it!
+        Serial.println("Dual mode (AP+STA) already active from Task 4 WebServer");
+        Serial.println("Preserving AP mode for web interface...");
+    } else if (current_mode != WIFI_STA) {
+        // Not in STA mode yet - set it (no Task 4 running or already checked)
+        WiFi.mode(WIFI_STA);
+        Serial.println("WiFi mode set to STA (Station)");
+    } else {
+        Serial.println("WiFi already in STA mode");
+    }
     
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-    Serial.println("WiFi connection initiated...");
+    Serial.println("WiFi STA connection initiated...");
     
     // ========== Exponential Backoff Retry Strategy ==========
     unsigned long retryDelay = 500;      // Start with 500ms
