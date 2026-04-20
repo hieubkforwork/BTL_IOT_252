@@ -1,5 +1,22 @@
 #include "task_6_CoreIOT.h"
 
+// ========== Connection State Machine ==========
+// Tracks current connection status for robust lifecycle management
+// (Enum definition is in task_6_CoreIOT.h as ConnectionState_t)
+
+// Global state tracking
+ConnectionState_t wifiState = STATE_INIT;
+ConnectionState_t mqttState = STATE_INIT;
+unsigned long lastWiFiReconnectAttempt = 0;  // Throttle WiFi reconnection attempts
+unsigned long lastMQTTReconnectAttempt = 0;  // Throttle MQTT reconnection attempts
+const unsigned long MQTT_RECONNECT_INTERVAL = 5000;  // Min 5s between MQTT reconnect attempts
+const unsigned long WIFI_RECONNECT_INTERVAL = 10000; // Min 10s between WiFi reconnect attempts
+
+// ========== MQTT Client & Buffer ==========
+WiFiClient wifiClient;           // WiFi transport layer for MQTT
+PubSubClient mqttClient(wifiClient);  // MQTT client instance
+char jsonBuffer[512];            // Serialization buffer for JSON payloads
+
 bool initWiFi() {
     Serial.println("\n========== WiFi Initialization ==========");
     Serial.printf("Target SSID: %s\n", WIFI_SSID);
@@ -155,7 +172,7 @@ void publishTinyMLData(float temperature, float humidity, float confidence,
     
     // ========== JSON Serialization ==========
     // Create JSON document with sensor readings and model output
-    StaticJsonDocument<256> doc;  // Stack-allocated, no heap fragmentation
+    JsonDocument doc;  // Modern ArduinoJson v7+ - heap-allocated with auto-sizing
     doc["device_id"] = "ESP32_001";
     doc["temperature"] = temperature;    // From DHT20 sensor
     doc["humidity"] = humidity;          // From DHT20 sensor
