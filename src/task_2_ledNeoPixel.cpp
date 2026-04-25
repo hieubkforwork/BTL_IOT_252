@@ -26,78 +26,40 @@ void initNeoPixelSystem(void) {
 // ==================== Function: Get Color from Temperature ====================
 uint32_t getColorFromTemperature(float temp) {
   uint32_t color;
-  const char* colorName;
   
   if (temp < TEMP_BLUE_MAX) {
     color = COLOR_BLUE;
-    colorName = "BLUE";
   } 
   else if (temp < TEMP_GREEN_MAX) {
     color = COLOR_GREEN;
-    colorName = "GREEN";
   } 
   else if (temp < TEMP_YELLOW_MAX) {
     color = COLOR_YELLOW;
-    colorName = "YELLOW";
   } 
   else {
     color = COLOR_RED;
-    colorName = "RED";
   }
   
-  Serial.printf("Color selected: %s\n", colorName);
   return color;
 }
 
 // ==================== Function: Get Blink Pattern from Humidity ====================
-void getBlinkPatternFromHumidity(float humidity, float trend, uint16_t *onTime, uint16_t *offTime) {
+void getBlinkPatternFromHumidity(float humidity, uint16_t *onTime, uint16_t *offTime) {
   if (humidity < HUMIDITY_DRY_MAX) {
     // DRY MODE: < 45%
-    if (trend > TREND_RISING_FAST) {
-      *onTime = 100;
-      *offTime = 100;
-    } else {
-      *onTime = BLINK_SLOW_ON;
-      *offTime = BLINK_SLOW_OFF;
-    }
+    *onTime = BLINK_SLOW_ON;
+    *offTime = BLINK_SLOW_OFF;
   } 
   else if (humidity < HUMIDITY_NORMAL_MAX) {
     // NORMAL MODE: 45-70%
-    if (trend < TREND_FALLING_FAST) {
-      *onTime = 300;
-      *offTime = 700;
-    } else {
-      *onTime = 65535;           
-      *offTime = BLINK_STABLE_OFF;
-    }
+    *onTime = 65535;           
+    *offTime = BLINK_STABLE_OFF;
   } 
   else {
     // HIGH MODE: > 70%
     *onTime = 100;
     *offTime = 100;
   }
-}
-
-// ==================== Function: Calculate Temperature Trend ====================
-void calculateTemperatureTrend(float currentTemp, uint32_t currentTimeMs, TrendData_t *trendData) {
-  if (trendData->prevTime == 0) {
-    trendData->prevTemp = currentTemp;
-    trendData->prevTime = currentTimeMs;
-    trendData->tempTrend = 0;
-    return;
-  }
-  
-  float timeDiffMs = (float)(currentTimeMs - trendData->prevTime);
-  float timeDiffSec = timeDiffMs / 1000;
-  
-  if (timeDiffSec > 0.1) { 
-    float tempDiff = currentTemp - trendData->prevTemp;
-    trendData->tempTrend = tempDiff / timeDiffSec;
-    Serial.printf("Trend: %.2f°C/s\n", trendData->tempTrend);
-  }
-  
-  trendData->prevTemp = currentTemp;
-  trendData->prevTime = currentTimeMs;
 }
 
 // ==================== Function: Update NeoPixel ====================
@@ -156,11 +118,8 @@ void taskHandleNeoPixel(void *pvParameters) {
   uint32_t currentColor = COLOR_BLUE;
   uint16_t blinkOnTime = BLINK_SLOW_ON;
   uint16_t blinkOffTime = BLINK_SLOW_OFF;
-  uint16_t prevBlinkOnTime = BLINK_SLOW_ON;   // Track previous pattern
+  uint16_t prevBlinkOnTime = BLINK_SLOW_ON;   
   uint16_t prevBlinkOffTime = BLINK_SLOW_OFF;
-  
-  TrendData_t trendData = {0, 0, 0};
-  uint32_t currentTimeMs = 0;
   
   Serial.println("NeoPixel task started");
   initNeoPixelSystem();
@@ -169,14 +128,8 @@ void taskHandleNeoPixel(void *pvParameters) {
   while (1) {
     if (xSemaphoreTake(xSemaphore_NeoPixelUpdate, 0) == pdTRUE) {
       if (xQueueReceive(xQueue_SensorData, &sensorData, 0) == pdPASS) {
-        Serial.printf("Received - Temp: %.1f°C, Humidity: %.1f%%\n", 
-                      sensorData.temperature, sensorData.humidity);
-        
-        currentTimeMs = xTaskGetTickCount();
-        calculateTemperatureTrend(sensorData.temperature, currentTimeMs, &trendData);
-        
         uint32_t newColor = getColorFromTemperature(sensorData.temperature);
-        getBlinkPatternFromHumidity(sensorData.humidity, trendData.tempTrend, &blinkOnTime, &blinkOffTime);
+        getBlinkPatternFromHumidity(sensorData.humidity, &blinkOnTime, &blinkOffTime);
         
         if (newColor != currentColor || blinkOnTime != prevBlinkOnTime || blinkOffTime != prevBlinkOffTime) {
           currentColor = newColor;
@@ -184,6 +137,13 @@ void taskHandleNeoPixel(void *pvParameters) {
           prevBlinkOffTime = blinkOffTime;
           lastBlinkTime = millis();
           ledIsOn = true;
+          
+          // Single log line for Task 2
+          const char* colorName = (newColor == COLOR_BLUE) ? "BLUE" : 
+                                  (newColor == COLOR_GREEN) ? "GREEN" : 
+                                  (newColor == COLOR_YELLOW) ? "YELLOW" : "RED";
+          Serial.printf("[Task2] Temp: %.1f°C | Humidity: %.1f%% | Color: %s\n", 
+                       sensorData.temperature, sensorData.humidity, colorName);
         }
       }
     }
@@ -224,8 +184,6 @@ bool readDHT20Data(float *temperature, float *humidity) {
     Serial.println("Invalid data from DHT20 (NaN)");
     return false;
   }
-  
-  Serial.printf("Temp: %.1f°C, Humidity: %.1f%%\n", *temperature, *humidity);
   return true;
 }
 
@@ -248,8 +206,12 @@ void taskReadSensor(void *pvParameters) {
         glob_temperature = temperature;
         glob_humidity = humidity;
         
+        // Signal TinyML task that new sensor data is ready
+        if (xSemaphore_NeoPixelUpdate != NULL) {
+          xSemaphoreGive(xSemaphore_NeoPixelUpdate);
+        }
+        
         if (sendSensorDataToNeoPixel(&sensorData) == pdPASS) {
-          Serial.println("Data sent to queue");
         } else {
           Serial.println("Queue full, data not sent");
         }

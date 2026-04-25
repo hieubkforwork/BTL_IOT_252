@@ -42,15 +42,6 @@
 #define COLOR_RED     0xFF0000  // RGB (255, 0, 0)
 #define COLOR_OFF     0x000000  // RGB (0, 0, 0)
 
-#define TREND_RISING_FAST 2        // °C/giây - nhiệt độ tăng nhanh
-#define TREND_FALLING_FAST -2       // °C/giây - nhiệt độ giảm nhanh
-
-typedef struct {
-  float prevTemp;       // Nhiệt độ lần trước (°C)
-  uint32_t prevTime;    // Thời gian lần trước (ms)
-  float tempTrend;      // Xu hướng (°C/giây) = ΔT/Δt
-} TrendData_t;
-
 extern SemaphoreHandle_t xSemaphore_NeoPixelUpdate;  
 extern QueueHandle_t xQueue_SensorData;  
 
@@ -60,13 +51,11 @@ void taskHandleNeoPixel(void *pvParameters);
 
 uint32_t getColorFromTemperature(float temp);
 
-void getBlinkPatternFromHumidity(float humidity, float trend, uint16_t *onTime, uint16_t *offTime);
+void getBlinkPatternFromHumidity(float humidity, uint16_t *onTime, uint16_t *offTime);
 
 void updateNeoPixel(uint32_t color, uint16_t onTime, uint16_t offTime);
 
 BaseType_t sendSensorDataToNeoPixel(const SensorData_t *sensorData);
-
-void calculateTemperatureTrend(float currentTemp, uint32_t currentTimeMs, TrendData_t *trendData);
 
 void initDHT20Sensor(void);
 
