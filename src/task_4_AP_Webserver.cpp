@@ -3,6 +3,8 @@
 WiFiClient espClient;
 PubSubClient client(espClient);
 
+
+
 String mqttServer;
 int mqttPort;
 String mqttUser;
@@ -16,6 +18,8 @@ unsigned long lastMQTTRetry = 0;
 
 static bool wifiWasConnected = false;
 
+QueueHandle_t wifiQueue;
+
 void handleWiFiNotify()
 {
     bool wifiNowConnected = (WiFi.status() == WL_CONNECTED);
@@ -23,7 +27,13 @@ void handleWiFiNotify()
     if (wifiNowConnected && !wifiWasConnected)
     {
         Serial.println("[WebTask] WiFi connected -> notify LedTask");
-
+        wifi_info_t info;
+        String macStr = WiFi.macAddress();
+        strncpy(info.mac, macStr.c_str(), sizeof(info.mac));
+        info.channel = WiFi.channel();
+        xQueueSend(wifiQueue, &info, portMAX_DELAY);
+        Serial.printf("[WebTask] Sent MAC: %s, CH: %d\n", info.mac, info.channel);
+        
         if (ledTaskHandle != NULL)
         {
             xTaskNotify(ledTaskHandle, WIFI_CONNECTED_NOTIFY_BIT, eSetBits);
@@ -47,7 +57,7 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
 }
 
 // ===== WiFi =====
-const char *ap_ssid = "HAH-AP";
+const char *ap_ssid = "HAH-AP2";
 const char *ap_password = "12345678";
 
 AsyncWebServer server(80);
@@ -74,27 +84,6 @@ void settingsWifi(void *pvParameters)
   Serial.print("[WebTask] AP IP: ");
   Serial.println(WiFi.softAPIP());
 
-  Serial.print("[WebTask] Connecting to STA");
-
-  // Retry connect
-  uint8_t retry = 0;
-  while (WiFi.status() != WL_CONNECTED && retry < 20)
-  {
-    vTaskDelay(pdMS_TO_TICKS(500));
-    Serial.print(".");
-    retry++;
-  }
-
-  if (WiFi.status() == WL_CONNECTED)
-  {
-    Serial.println("\n[WebTask] STA connected");
-    Serial.print("[WebTask] STA IP: ");
-    Serial.println(WiFi.localIP());
-  }
-  else
-  {
-    Serial.println("\n[WebTask] STA FAILED (no Internet)");
-  }
 }
 
 void webBackend(void *pvParameters)
@@ -245,11 +234,15 @@ void handleMQTT()
     client.loop();
   }
 }
-void webServerTask(void *pvParameters)
+void taskHandleWebServer(void *pvParameters)
 {
   pinMode(LED_PIN, OUTPUT);
 
   digitalWrite(LED_PIN, LOW);
+
+  // Tạo queue để giao tiếp WiFi info sang task NOW
+  wifiQueue = xQueueCreate(5, sizeof(wifi_info_t));
+
 
   // ===== Mount LittleFS =====
   mountFlash(pvParameters);
