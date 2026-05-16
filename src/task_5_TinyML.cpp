@@ -73,17 +73,11 @@ void tiny_ml_task(void *pvParameters)
     const float TEMP_STD = 12.23954916f;  
     const float HUMI_MEAN = 53.83450000f;   
     const float HUMI_STD = 21.54992366f;
+    const TickType_t xInferencePeriod = pdMS_TO_TICKS(1000);
+    static bool lastAnomalyState = false;
 
     while (1)
     {
-        if (xSemaphore_NeoPixelUpdate != NULL) {
-            if (xSemaphoreTake(xSemaphore_NeoPixelUpdate, pdMS_TO_TICKS(6000)) != pdTRUE) {
-                Serial.println("[ERROR] Timeout waiting for Sensor data");
-                vTaskDelay(pdMS_TO_TICKS(1000));
-                continue;
-            }
-        }
-
         float temp_raw = glob_temperature;
         float humi_raw = glob_humidity;
 
@@ -105,7 +99,7 @@ void tiny_ml_task(void *pvParameters)
 
         if (invoke_status != kTfLiteOk) {
             Serial.printf("[INVOKE] FAILED! Status: %d\n", invoke_status);
-            vTaskDelay(pdMS_TO_TICKS(1000));
+            vTaskDelay(xInferencePeriod);
             continue;
         }
 
@@ -117,18 +111,24 @@ void tiny_ml_task(void *pvParameters)
         if (inference_time > perf.maxTime) perf.maxTime = inference_time;
         perf.avgTime = (float)perf.totalTime / perf.inferenceCount;
 
-        const char* status = (result > 0.5) ? "ANOMALY" : "NORMAL";
-        
-        Serial.printf("[Task5] Confidence: %.3f | Status: %s\n", result, status);
-        
-        publishTinyMLData(glob_temperature, glob_humidity, result, 
-                         status, inference_time, xPortGetFreeHeapSize());
-    
-        if (result > 0.5) {
-            updateNeoPixel(0xFF0000, 0, 0);  
-        } else {
-            updateNeoPixel(0x00FF00, 0, 0);  
+        const bool isAnomaly = (result > 0.5f);
+        const char* status = isAnomaly ? "ANOMALY" : "NORMAL";
+
+        if (isAnomaly != lastAnomalyState || (perf.inferenceCount % 5) == 0) {
+            Serial.printf("[Task5] infer=%u time=%lums avg=%.2fms status=%s\n",
+                          (unsigned)perf.inferenceCount,
+                          inference_time,
+                          perf.avgTime,
+                          status);
+            lastAnomalyState = isAnomaly;
         }
-        vTaskDelay(pdMS_TO_TICKS(5000));
+
+        if (isAnomaly) {
+            updateNeoPixel(0xFF0000, 0, 0);
+        } else {
+            updateNeoPixel(0x00FF00, 0, 0);
+        }
+
+        vTaskDelay(xInferencePeriod);
     }
 }

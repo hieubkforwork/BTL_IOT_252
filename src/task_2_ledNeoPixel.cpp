@@ -166,7 +166,7 @@ void initDHT20Sensor(void) {
   } else {
     Serial.println("ERROR: DHT20 initialization failed!");
   }
-  delay(500);
+  vTaskDelay(pdMS_TO_TICKS(500));
 }
 
 bool readDHT20Data(float *temperature, float *humidity) {
@@ -195,7 +195,7 @@ void taskReadSensor(void *pvParameters) {
   
   initDHT20Sensor();
   
-  while (1) {
+while (1) {
     retryCount = 0;
     while (retryCount < SENSOR_MAX_RETRY) {
       if (readDHT20Data(&temperature, &humidity)) {

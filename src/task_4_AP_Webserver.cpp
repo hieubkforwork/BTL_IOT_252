@@ -1,7 +1,7 @@
 #include "task_4_AP_Webserver.h"
 
-WiFiClient espClient;
-PubSubClient client(espClient);
+// WiFiClient espClient;
+// PubSubClient client(espClient);
 
 String mqttServer;
 int mqttPort;
@@ -29,6 +29,14 @@ void handleWiFiNotify()
             xTaskNotify(ledTaskHandle, WIFI_CONNECTED_NOTIFY_BIT, eSetBits);
         }
     }
+    // BÁO CHO TASK LED BIẾT KHI MẤT WIFI
+    else if (!wifiNowConnected && wifiWasConnected)
+    {
+        Serial.println("[WebTask] WiFi LOST -> notify LedTask");
+        if (ledTaskHandle != NULL) {
+            xTaskNotify(ledTaskHandle, WIFI_LOST_NOTIFY_BIT, eSetBits);
+        }
+    }
 
     wifiWasConnected = wifiNowConnected;
 }
@@ -47,7 +55,7 @@ void mqttCallback(char *topic, byte *payload, unsigned int length)
 }
 
 // ===== WiFi =====
-const char *ap_ssid = "HAH-AP";
+const char *ap_ssid = "HAH-AP1";
 const char *ap_password = "12345678";
 
 AsyncWebServer server(80);
@@ -64,6 +72,7 @@ void mountFlash(void *pvParameters)
 
 void settingsWifi(void *pvParameters)
 {
+  vTaskDelay(pdMS_TO_TICKS(5000));
   Serial.println("[WebTask] settingsWifi started");
 
   // Mode
@@ -74,7 +83,12 @@ void settingsWifi(void *pvParameters)
   Serial.print("[WebTask] AP IP: ");
   Serial.println(WiFi.softAPIP());
 
-  Serial.print("[WebTask] Connecting to STA");
+  Serial.println("[WebTask] Connecting to STA");
+
+  // BÁO CHO TASK LED BIẾT ĐANG CONNECTING
+  if (ledTaskHandle != NULL) {
+      xTaskNotify(ledTaskHandle, WIFI_CONNECTING_NOTIFY_BIT, eSetBits);
+  }
 
   // Retry connect
   uint8_t retry = 0;
@@ -211,40 +225,41 @@ void webBackend(void *pvParameters)
   Serial.println("[WebTask] Web server started");
 }
 
-void handleMQTT()
-{
+// void handleMQTT()
+// {
 
-  if (WiFi.status() != WL_CONNECTED)
-    return;
-  if (!mqttConfigured)
-    return;
+//   if (WiFi.status() != WL_CONNECTED)
+//     return;
+//   if (!mqttConfigured)
+//     return;
 
-  if (!client.connected())
-  {
+//   if (!client.connected())
+//   {
 
-    if (millis() - lastMQTTRetry > 3000)
-    {
-      lastMQTTRetry = millis();
+//     if (millis() - lastMQTTRetry > 3000)
+//     {
+//       lastMQTTRetry = millis();
 
-      Serial.println("Connecting MQTT...");
+//       Serial.println("Connecting MQTT...");
 
-      if (client.connect("esp32-client", mqttUser.c_str(), mqttPass.c_str()))
-      {
-        Serial.println("MQTT Connected");
+//       if (client.connect("esp32-client", mqttUser.c_str(), mqttPass.c_str()))
+//       {
+//         Serial.println("MQTT Connected");
 
-        client.subscribe(mqttTopic.c_str());
-      }
-      else
-      {
-        Serial.println("MQTT Failed");
-      }
-    }
-  }
-  else
-  {
-    client.loop();
-  }
-}
+//         client.subscribe(mqttTopic.c_str());
+//       }
+//       else
+//       {
+//         Serial.println("MQTT Failed");
+//       }
+//     }
+//   }
+//   else
+//   {
+//     client.loop();
+//   }
+// }
+
 void webServerTask(void *pvParameters)
 {
   pinMode(LED_PIN, OUTPUT);
@@ -266,7 +281,7 @@ void webServerTask(void *pvParameters)
   while (true)
   {
     handleWiFiNotify();
-    handleMQTT();
+    //handleMQTT();
     vTaskDelay(pdMS_TO_TICKS(100));
   }
 }

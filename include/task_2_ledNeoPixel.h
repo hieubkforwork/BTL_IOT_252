@@ -13,7 +13,7 @@
 #define DHT20_I2C_SCL GPIO_NUM_12  // SCL pin cho DHT20
 #define DHT20_I2C_FREQ 100000     
 
-#define SENSOR_READ_INTERVAL_MS 2000  // Đọc cảm biến mỗi 2 giây
+#define SENSOR_READ_INTERVAL_MS 3000  // Đọc cảm biến mỗi 3 giây
 #define SENSOR_MAX_RETRY 3             // Retry 3 lần nếu đọc thất bại
 #define QUEUE_SIZE 1                   // RTOS Queue size = 1 (for xQueueOverwrite - keeps latest data only)
 
