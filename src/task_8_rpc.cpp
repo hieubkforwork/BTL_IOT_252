@@ -38,7 +38,7 @@ void callback(char *topic, byte *payload, unsigned int length)
 
   Serial.println(msg);
 
-  JsonDocument doc;
+DynamicJsonDocument doc(1024);
   DeserializationError err = deserializeJson(doc, msg);
 
   if (err) return;
@@ -62,7 +62,7 @@ void callback(char *topic, byte *payload, unsigned int length)
     Serial.println(value);
 
     // gửi attribute
-    JsonDocument res;
+    DynamicJsonDocument res(1024);
     res["value"] = value;
 
     char buffer[100];
@@ -182,7 +182,7 @@ void taskSensor(void *pvParameters)
 
     if (!isnan(temp) && !isnan(hum))
     {
-      JsonDocument doc;
+      DynamicJsonDocument doc(1024);
       doc["temperature"] = temp;
       doc["humidity"] = hum;
 

@@ -9,7 +9,6 @@
 #include <Update.h>
 #include <PubSubClient.h>
 #include "global.h"
-
 #define LED_PIN GPIO_NUM_5
 #define WIFI_CONNECTED_NOTIFY_BIT (1 << 0)
 
